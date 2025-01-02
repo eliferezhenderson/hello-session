@@ -1,9 +1,8 @@
 // src/app/api/question_route/route.js
+import { Redis } from '@upstash/redis'
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
 
-// Question bank (excluding ones with negative feedback)
+// Keep your original questions array
 const questions = [
   "Where do you know from?",
   "One nice thing you did this weekend?",
@@ -27,19 +26,29 @@ const questions = [
   "what do you do for rest",
   "how do you treat yourself after a hard days work",
   "Opening theme song to your biopic",
-  "mid autumn festival - something you are thankful for",
+  "what is something you are thankful for",
   "what book genre would your life be",
   "share something fun you did this last week",
   "what genre tv show would your life story be in",
-  "travel ritual"
+  "what is a travel ritual"
 ];
 
-// GET handler
+const redis = new Redis({
+  url: process.env.REDIS_URL
+});
+
+// GET handler - now includes both static questions and any stored suggestions
 export async function GET() {
   try {
-    // Add CORS headers
+    // Get suggestions from Redis
+    const suggestions = await redis.lrange('suggestions', 0, -1);
+    const parsedSuggestions = suggestions.map(s => JSON.parse(s).question);
+    
+    // Combine original questions with suggestions
+    const allQuestions = [...questions, ...parsedSuggestions];
+    
     return new NextResponse(
-      JSON.stringify({ questions }), 
+      JSON.stringify({ questions: allQuestions }), 
       {
         status: 200,
         headers: {
@@ -49,24 +58,25 @@ export async function GET() {
     );
   } catch (error) {
     console.error('GET Error:', error);
+    // If Redis fails, at least return the original questions
     return new NextResponse(
-      JSON.stringify({ error: 'Failed to fetch questions' }), 
-      { status: 500 }
+      JSON.stringify({ questions }), 
+      { status: 200 }
     );
   }
 }
 
-// POST handler
+// POST handler stays the same as previous suggestion
 export async function POST(request) {
   try {
     const { question } = await request.json();
     
-    // Create path to suggestions file
-    const filePath = path.join(process.cwd(), 'suggested_questions.txt');
-    
-    // Append new question to file with timestamp
-    const timestamp = new Date().toISOString();
-    await fs.appendFile(filePath, `${timestamp}: ${question}\n`);
+    const suggestion = {
+      timestamp: new Date().toISOString(),
+      question: question
+    };
+
+    await redis.lpush('suggestions', JSON.stringify(suggestion));
 
     return new NextResponse(
       JSON.stringify({ 

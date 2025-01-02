@@ -75,17 +75,11 @@ export default function StyledQuestionGenerator() {
       if (response.ok) {
         const data = await response.json();
         if (data.newQuestion) {
-          // Update current question if GPT generated a simpler one
           setCurrentQuestion(data.newQuestion);
-          showNotification('Here\'s a simpler version of the question!');
-        } else {
-          // If the question was "just right", get a new random question
-          getRandomQuestion();
           showNotification('Thanks for the feedback! Here\'s a new question.');
         }
       }
     } catch (error) {
-      console.error('Feedback Error:', error);
       showNotification('Failed to process feedback', 'error');
     } finally {
       setIsLoading(false);
@@ -151,27 +145,27 @@ export default function StyledQuestionGenerator() {
             <h3 className="text-xl mb-6 font-light text-red-500">FEEDBACK</h3>
             <div className="flex gap-4">
               <button 
-                onClick={() => handleFeedback('dislike')}
+                onClick={() => handleFeedback('too_complex')}
                 disabled={isLoading || currentQuestion === 'Question Loading...'}
                 className="border border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
                          hover:text-white transition-colors disabled:opacity-50 flex-1"
               >
-                TOO COMPLEX
+                TOO COMPLEX, GIVE ME AN EASIER QUESTION
               </button>
               <button 
-                onClick={() => handleFeedback('like')}
+                onClick={() => handleFeedback('too_simple')}
                 disabled={isLoading || currentQuestion === 'Question Loading...'}
                 className="border border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
                          hover:text-white transition-colors disabled:opacity-50 flex-1"
               >
-                JUST RIGHT
+                TOO SIMPLE, GIVE ME A DEEPER QUESTION
               </button>
             </div>
           </section>
 
           {/* Submit Question Section */}
           <section className="bg-white p-8 border border-red-200">
-            <h3 className="text-xl mb-6 font-light text-red-500">SUGGEST A QUESTION</h3>
+            <h3 className="text-xl mb-6 font-light text-red-500">SUGGEST A NEW QUESTION</h3>
             <div className="flex gap-4">
               <input
                 type="text"
