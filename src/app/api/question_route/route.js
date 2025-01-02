@@ -2,7 +2,33 @@ import { NextResponse } from 'next/server';
 import Redis from 'ioredis';
 
 const questions = [
-    // ... your existing questions array ...
+    "Where do you know from?",
+    "One nice thing you did this weekend?",
+    "A book title that influenced you?",
+    "What are you listening to these days?",
+    "What are you reading?",
+    "one ritual you do while you travel",
+    "small group breakouts",
+    "one joyful thing this past week",
+    "what do you do to destress",
+    "what do you do when you are stressed",
+    "what is the ideal stress party for you",
+    "what are you looking forward to",
+    "name one tip for time management",
+    "what bop is playing in your earbuds right now",
+    "what is a brave classroom",
+    "what would you bring to a picnic",
+    "what is your favorite karaoke song",
+    "what is your favorite textile in honor of women's international day",
+    "what motivates you",
+    "what do you do for rest",
+    "how do you treat yourself after a hard days work",
+    "Opening theme song to your biopic",
+    "what is something you are thankful for",
+    "what book genre would your life be",
+    "share something fun you did this last week",
+    "what genre tv show would your life story be in",
+    "what is a travel ritual"
 ];
 
 const redis = new Redis(process.env.REDIS_URL);
