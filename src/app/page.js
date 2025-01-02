@@ -1,4 +1,3 @@
-// src/app/page.js
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,7 +14,6 @@ export default function StyledQuestionGenerator() {
 
   useEffect(() => {
     fetchQuestions();
-    // Initialize and update time
     setCurrentTime(new Date().toLocaleTimeString());
     const interval = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString());
@@ -36,7 +34,7 @@ export default function StyledQuestionGenerator() {
         throw new Error('Failed to fetch questions');
       }
       const data = await response.json();
-      console.log('Fetched questions:', data); // For debugging
+      console.log('Fetched data:', data);
       setQuestionBank(data.questions);
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -76,10 +74,14 @@ export default function StyledQuestionGenerator() {
         const data = await response.json();
         if (data.newQuestion) {
           setCurrentQuestion(data.newQuestion);
+          showNotification(`Here's a ${feedbackType === 'too_complex' ? 'simpler' : 'deeper'} version!`);
+        } else {
+          getRandomQuestion();
           showNotification('Thanks for the feedback! Here\'s a new question.');
         }
       }
     } catch (error) {
+      console.error('Feedback Error:', error);
       showNotification('Failed to process feedback', 'error');
     } finally {
       setIsLoading(false);
@@ -165,7 +167,7 @@ export default function StyledQuestionGenerator() {
 
           {/* Submit Question Section */}
           <section className="bg-white p-8 border border-red-200">
-            <h3 className="text-xl mb-6 font-light text-red-500">SUGGEST A NEW QUESTION</h3>
+            <h3 className="text-xl mb-6 font-light text-red-500">SUGGEST A QUESTION</h3>
             <div className="flex gap-4">
               <input
                 type="text"
