@@ -1,33 +1,45 @@
+// src/app/page.js
 'use client';
 
 import { useState, useEffect } from 'react';
 
-export default function HelloSession() {
-  const [currentQuestion, setCurrentQuestion] = useState('Loading...');
-  const [feedback, setFeedback] = useState('');
+export default function StyledQuestionGenerator() {
+  const [currentQuestion, setCurrentQuestion] = useState('Question Loading...');
   const [newQuestion, setNewQuestion] = useState('');
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState('success');
   const [isLoading, setIsLoading] = useState(true);
   const [questionBank, setQuestionBank] = useState([]);
+  const [currentTime, setCurrentTime] = useState('');
 
   useEffect(() => {
     fetchQuestions();
+    // Initialize and update time
+    setCurrentTime(new Date().toLocaleTimeString());
+    const interval = setInterval(() => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    }, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    if (questionBank.length > 0 && currentQuestion === 'Loading...') {
+    if (questionBank.length > 0 && currentQuestion === 'Question Loading...') {
       getRandomQuestion();
     }
   }, [questionBank]);
 
   const fetchQuestions = async () => {
     try {
-      const response = await fetch('/api/questions');
+      const response = await fetch('/api/question_route');
+      if (!response.ok) {
+        throw new Error('Failed to fetch questions');
+      }
       const data = await response.json();
+      console.log('Fetched questions:', data); // For debugging
       setQuestionBank(data.questions);
     } catch (error) {
+      console.error('Error fetching questions:', error);
       showNotification('Failed to load questions', 'error');
     } finally {
       setIsLoading(false);
@@ -51,7 +63,7 @@ export default function HelloSession() {
     if (isLoading) return;
     setIsLoading(true);
     try {
-      const response = await fetch('/api/feedback', {
+      const response = await fetch('/api/feedback_route', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -63,11 +75,17 @@ export default function HelloSession() {
       if (response.ok) {
         const data = await response.json();
         if (data.newQuestion) {
+          // Update current question if GPT generated a simpler one
           setCurrentQuestion(data.newQuestion);
+          showNotification('Here\'s a simpler version of the question!');
+        } else {
+          // If the question was "just right", get a new random question
+          getRandomQuestion();
           showNotification('Thanks for the feedback! Here\'s a new question.');
         }
       }
     } catch (error) {
+      console.error('Feedback Error:', error);
       showNotification('Failed to process feedback', 'error');
     } finally {
       setIsLoading(false);
@@ -79,7 +97,7 @@ export default function HelloSession() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/questions', {
+      const response = await fetch('/api/question_route', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: newQuestion })
@@ -98,80 +116,92 @@ export default function HelloSession() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-2xl mx-auto space-y-6">
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-center mb-8">
-              Hello Session Question Generator
-            </h1>
-            
-            <div className="text-center p-8 bg-gray-50 rounded-lg mb-6">
-              <h2 className="text-xl mb-4">
-                {isLoading ? 'Loading...' : currentQuestion}
-              </h2>
+    <main className="min-h-screen bg-gray-50 p-8 font-mono">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <header className="mb-12 border-b border-red-400 pb-4">
+          <div className="flex justify-between items-center text-red-500 mb-2">
+            <div>HELLO SESSION GENERATOR [BETA]</div>
+            <div>{currentTime}</div>
+          </div>
+          <h1 className="text-6xl font-light tracking-tight text-red-500">
+            HELLO, FRIEND
+          </h1>
+        </header>
+
+        {/* Main Content */}
+        <div className="space-y-12">
+          {/* Question Display */}
+          <section className="bg-white p-8 border border-red-200">
+            <h2 className="text-3xl mb-8 font-light text-red-500">
+              {isLoading ? 'LOADING...' : currentQuestion}
+            </h2>
+            <button 
+              onClick={getRandomQuestion}
+              disabled={isLoading || questionBank.length === 0}
+              className="border border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
+                       hover:text-white transition-colors disabled:opacity-50"
+            >
+              GENERATE NEW QUESTION
+            </button>
+          </section>
+
+          {/* Feedback Section */}
+          <section className="bg-white p-8 border border-red-200">
+            <h3 className="text-xl mb-6 font-light text-red-500">FEEDBACK</h3>
+            <div className="flex gap-4">
               <button 
-                onClick={getRandomQuestion}
-                disabled={isLoading || questionBank.length === 0}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 
-                         transition-colors disabled:opacity-50"
+                onClick={() => handleFeedback('dislike')}
+                disabled={isLoading || currentQuestion === 'Question Loading...'}
+                className="border border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
+                         hover:text-white transition-colors disabled:opacity-50 flex-1"
               >
-                {isLoading ? 'Loading...' : 'Get New Question'}
+                TOO COMPLEX
+              </button>
+              <button 
+                onClick={() => handleFeedback('like')}
+                disabled={isLoading || currentQuestion === 'Question Loading...'}
+                className="border border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
+                         hover:text-white transition-colors disabled:opacity-50 flex-1"
+              >
+                JUST RIGHT
               </button>
             </div>
+          </section>
 
-            <div className="space-y-4 mb-6">
-              <h3 className="text-lg font-semibold">How was this question?</h3>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => handleFeedback('dislike')}
-                  disabled={isLoading || currentQuestion === 'Loading...'}
-                  className="px-4 py-2 border rounded hover:bg-gray-100 
-                           transition-colors disabled:opacity-50"
-                >
-                  Too Complex
-                </button>
-                <button 
-                  onClick={() => handleFeedback('like')}
-                  disabled={isLoading || currentQuestion === 'Loading...'}
-                  className="px-4 py-2 border rounded hover:bg-gray-100 
-                           transition-colors disabled:opacity-50"
-                >
-                  Just Right
-                </button>
-              </div>
+          {/* Submit Question Section */}
+          <section className="bg-white p-8 border border-red-200">
+            <h3 className="text-xl mb-6 font-light text-red-500">SUGGEST A QUESTION</h3>
+            <div className="flex gap-4">
+              <input
+                type="text"
+                placeholder="TYPE YOUR QUESTION HERE..."
+                value={newQuestion}
+                onChange={(e) => setNewQuestion(e.target.value)}
+                disabled={isLoading}
+                className="flex-1 px-4 py-3 border border-red-200 focus:border-red-500 
+                         outline-none disabled:opacity-50 disabled:bg-gray-100 
+                         placeholder:text-red-200"
+              />
+              <button 
+                onClick={handleSubmitQuestion}
+                disabled={!newQuestion.trim() || isLoading}
+                className="border border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
+                         hover:text-white transition-colors disabled:opacity-50"
+              >
+                SUBMIT
+              </button>
             </div>
-
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Suggest a New Question</h3>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Type your question here..."
-                  value={newQuestion}
-                  onChange={(e) => setNewQuestion(e.target.value)}
-                  disabled={isLoading}
-                  className="flex-1 px-4 py-2 border rounded focus:ring-2 
-                           focus:ring-blue-500 focus:border-blue-500 outline-none
-                           disabled:opacity-50 disabled:bg-gray-100"
-                />
-                <button 
-                  onClick={handleSubmitQuestion}
-                  disabled={!newQuestion.trim() || isLoading}
-                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 
-                           transition-colors disabled:opacity-50"
-                >
-                  Submit
-                </button>
-              </div>
-            </div>
-          </div>
+          </section>
         </div>
 
+        {/* Alert */}
         {showAlert && (
-          <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg
-            ${alertType === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}
-          >
+          <div className={`fixed bottom-4 right-4 p-4 border ${
+            alertType === 'error' 
+              ? 'border-red-500 bg-white text-red-500' 
+              : 'border-green-500 bg-white text-green-500'
+          }`}>
             {alertMessage}
           </div>
         )}
