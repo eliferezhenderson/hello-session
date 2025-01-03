@@ -1,49 +1,52 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// 1) Import your single source of truth for the question bank:
+import questions from '../../questions.js'; 
+// If you placed it differently, adjust the import path accordingly.
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Helper function to format questions consistently
+// 2) Helper function to format questions consistently
 const formatQuestion = (question) => {
   return question
     .replace(/^["']|["']$/g, '') // Remove surrounding quotes
     .replace(/\s+/g, ' ')        // Normalize whitespace
     .trim()                      // Remove leading/trailing whitespace
     .replace(/^\w/, (c) => c.toUpperCase()) // Capitalize first letter
-    .replace(/[.?!]+$/, '?');    // Ensure question ends with a single question mark
+    .replace(/[.?!]+$/, '?');    // Ensure question ends with a single '?'
 };
 
-// Simple utility to pick a random item from an array
-function pickRandom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+// 3) Build a System Prompt that includes your entire question bank
+function buildSystemPrompt(type) {
+  // Convert your array of questions to a bullet-list or joined string
+  const bankList = questions
+    .map((q, i) => `(${i + 1}) ${q}`)
+    .join('\n');
+
+  if (type === 'random') {
+    return `You have the following question bank:\n\n${bankList}\n\nThe user wants a random icebreaker question. Decide whether to pick one from the bank or generate a brand-new question in a similar style. Return ONLY the question in plain text, with no quotes or extra commentary. Use proper grammar and punctuation.`;
+  } else if (type === 'easier') {
+    return `You have the following question bank:\n\n${bankList}\n\nThe user wants a simpler, easier icebreaker question. Decide whether to pick one from the bank or generate a brand-new simpler question in a similar style. Return ONLY the question in plain text, with no quotes or extra commentary. Use proper grammar and punctuation.`;
+  } else {
+    // 'deeper'
+    return `You have the following question bank:\n\n${bankList}\n\nThe user wants a more thought-provoking, deeper question. Decide whether to pick one from the bank or generate a brand-new deeper question in a similar style. Return ONLY the question in plain text, with no quotes or extra commentary. Use proper grammar and punctuation.`;
+  }
 }
 
 export async function POST(request) {
   try {
-    const { questionBank, currentQuestion, type } = await request.json();
+    // 4) We only need { type } from the request now.
+    //    "currentQuestion" or "questionBank" are no longer needed,
+    //    because GPT always sees your entire question bank anyway.
+    const { type } = await request.json();
 
-    // 1) If user selected "random," we just pick from the local bank
-    if (type === 'random') {
-      const randomQ = pickRandom(questionBank);
-      const newQuestion = formatQuestion(randomQ || 'What is your favorite color?');
-      return NextResponse.json({ newQuestion });
-    }
+    // 5) Build system prompt from local question bank
+    const systemPrompt = buildSystemPrompt(type);
 
-    // 2) If user clicked "easier" or "deeper," we call GPT
-    //    and use your old system prompts for simpler vs deeper
-    const systemPrompt =
-      type === 'easier'
-        ? "You are a helpful assistant that generates simpler icebreaker questions. Generate a single question that is simpler than the given question while maintaining the same theme or topic. The response should be just the question, without quotes or additional text. Use proper grammar and capitalization."
-        : "You are a helpful assistant that generates deeper icebreaker questions. Generate a single question that is more thought-provoking than the given question while maintaining the same theme or topic. The response should be just the question, without quotes or additional text. Use proper grammar and capitalization.";
-
-    // Build the user message so GPT knows which question is considered complex or simple
-    const userMessage =
-      type === 'easier'
-        ? `The following question was considered too complex: "${currentQuestion}". Please generate a simpler alternative.`
-        : `The following question was considered too simple: "${currentQuestion}". Please generate a deeper alternative.`;
-
+    // 6) Make a single GPT call. GPT will pick or generate a question:
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       temperature: 0.7,
@@ -55,20 +58,23 @@ export async function POST(request) {
         },
         {
           role: 'user',
-          content: userMessage,
+          content: "Please follow the system prompt carefully and return only the question.",
         },
       ],
     });
 
-    // Grab GPT's raw output, then apply your formatting function
+    // 7) Format GPT's response with your existing helper
     const rawGPTResponse = completion.choices[0]?.message?.content || '';
     const newQuestion = formatQuestion(rawGPTResponse);
 
-    return NextResponse.json({ newQuestion }, {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-
+    // 8) Return the new question to the client
+    return NextResponse.json(
+      { newQuestion },
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   } catch (error) {
     console.error('Feedback Error:', error);
     return NextResponse.json(

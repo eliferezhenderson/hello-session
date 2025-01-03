@@ -17,6 +17,8 @@ export default function QuestionGenerator() {
   //
   useEffect(() => {
     fetchQuestions();
+    setIsLoading(false);
+    handleClick('random');
     setCurrentTime(new Date().toLocaleTimeString());
     const interval = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString());
@@ -54,6 +56,8 @@ export default function QuestionGenerator() {
   //
   // 3. BUTTON CLICK HANDLER (GO RANDOM / GO EASIER / GO DEEPER)
   //
+
+  
   const handleClick = async (type) => {
     if (isLoading) return;
     setIsLoading(true);
@@ -69,9 +73,7 @@ export default function QuestionGenerator() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          questionBank,
-          currentQuestion,
-          type, // "random", "easier", or "deeper"
+          type // "random", "easier", or "deeper"
         }),
       });
 
