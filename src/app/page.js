@@ -1,9 +1,9 @@
-import dynamic from 'next/dynamic'
+import dynamic from 'next/dynamic';
 
-const QuestionGenerator = dynamic(() => import('./components/QuestionGenerator'), {
+const ClientPage = dynamic(() => import('./components/ClientPage'), {
   ssr: false,
 });
 
 export default function Page() {
-  return <QuestionGenerator />;
+  return <ClientPage />;
 }
