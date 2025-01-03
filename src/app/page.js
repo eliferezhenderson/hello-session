@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 
 export default function StyledQuestionGenerator() {
@@ -23,18 +21,15 @@ export default function StyledQuestionGenerator() {
 
   useEffect(() => {
     if (questionBank.length > 0 && currentQuestion === 'Question Loading...') {
-      getRandomQuestion();
+      handleFeedback('initial');
     }
   }, [questionBank]);
 
   const fetchQuestions = async () => {
     try {
       const response = await fetch('/api/question_route');
-      if (!response.ok) {
-        throw new Error('Failed to fetch questions');
-      }
+      if (!response.ok) throw new Error('Failed to fetch questions');
       const data = await response.json();
-      console.log('Fetched data:', data);
       setQuestionBank(data.questions);
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -51,33 +46,45 @@ export default function StyledQuestionGenerator() {
     setTimeout(() => setShowAlert(false), 3000);
   };
 
-  const getRandomQuestion = () => {
-    if (questionBank.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * questionBank.length);
-    setCurrentQuestion(questionBank[randomIndex]);
-  };
-
   const handleFeedback = async (feedbackType) => {
     if (isLoading) return;
     setIsLoading(true);
+    
     try {
-      const response = await fetch('/api/feedback_route', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          question: currentQuestion,
-          feedback: feedbackType
-        })
-      });
+      // 50% chance to either use API or question bank
+      const useApi = Math.random() < 0.5;
+      
+      if (useApi && feedbackType !== 'initial') {
+        const response = await fetch('/api/feedback_route', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            question: currentQuestion,
+            feedback: feedbackType
+          })
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.newQuestion) {
-          setCurrentQuestion(data.newQuestion);
-          showNotification(`Here's a ${feedbackType === 'too_complex' ? 'simpler' : 'deeper'} version!`);
-        } else {
-          getRandomQuestion();
-          showNotification('Thanks for the feedback! Here\'s a new question.');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.newQuestion) {
+            const formattedQuestion = data.newQuestion
+              .replace(/^["']|["']$/g, '')  // Remove quotes
+              .replace(/^\w/, c => c.toUpperCase());  // Capitalize first letter
+            setCurrentQuestion(formattedQuestion);
+            if (feedbackType !== 'initial') {
+              showNotification(`Here's a ${feedbackType === 'too_complex' ? 'simpler' : 'deeper'} version!`);
+            }
+          }
+        }
+      } else {
+        // Use question bank
+        const randomIndex = Math.floor(Math.random() * questionBank.length);
+        const formattedQuestion = questionBank[randomIndex]
+          .replace(/^["']|["']$/g, '')
+          .replace(/^\w/, c => c.toUpperCase());
+        setCurrentQuestion(formattedQuestion);
+        if (feedbackType !== 'initial') {
+          showNotification('Here\'s a different question!');
         }
       }
     } catch (error) {
@@ -112,7 +119,7 @@ export default function StyledQuestionGenerator() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8 font-mono">
+    <main className="min-h-screen bg-pink-50 p-8" style={{ fontFamily: 'Adobe Caslon Pro, serif' }}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <header className="mb-12 border-b border-red-400 pb-4">
@@ -128,36 +135,27 @@ export default function StyledQuestionGenerator() {
         {/* Main Content */}
         <div className="space-y-12">
           {/* Question Display */}
-          <section className="bg-white p-8 border border-red-200">
+          <section className="bg-white p-8 border border-red-200 shadow-lg">
             <h2 className="text-3xl mb-8 font-light text-red-500">
               {isLoading ? 'LOADING...' : currentQuestion}
             </h2>
-            <button 
-              onClick={getRandomQuestion}
-              disabled={isLoading || questionBank.length === 0}
-              className="border border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
-                       hover:text-white transition-colors disabled:opacity-50"
-            >
-              GENERATE NEW QUESTION
-            </button>
           </section>
 
           {/* Feedback Section */}
-          <section className="bg-white p-8 border border-red-200">
-            <h3 className="text-xl mb-6 font-light text-red-500">FEEDBACK</h3>
+          <section className="bg-white p-8 border border-red-200 shadow-lg">
             <div className="flex gap-4">
               <button 
                 onClick={() => handleFeedback('too_complex')}
-                disabled={isLoading || currentQuestion === 'Question Loading...'}
-                className="border border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
+                disabled={isLoading}
+                className="border-2 border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
                          hover:text-white transition-colors disabled:opacity-50 flex-1"
               >
                 TOO COMPLEX, GIVE ME AN EASIER QUESTION
               </button>
               <button 
                 onClick={() => handleFeedback('too_simple')}
-                disabled={isLoading || currentQuestion === 'Question Loading...'}
-                className="border border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
+                disabled={isLoading}
+                className="border-2 border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
                          hover:text-white transition-colors disabled:opacity-50 flex-1"
               >
                 TOO SIMPLE, GIVE ME A DEEPER QUESTION
@@ -166,7 +164,7 @@ export default function StyledQuestionGenerator() {
           </section>
 
           {/* Submit Question Section */}
-          <section className="bg-white p-8 border border-red-200">
+          <section className="bg-white p-8 border border-red-200 shadow-lg">
             <h3 className="text-xl mb-6 font-light text-red-500">SUGGEST A QUESTION</h3>
             <div className="flex gap-4">
               <input
@@ -182,7 +180,7 @@ export default function StyledQuestionGenerator() {
               <button 
                 onClick={handleSubmitQuestion}
                 disabled={!newQuestion.trim() || isLoading}
-                className="border border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
+                className="border-2 border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
                          hover:text-white transition-colors disabled:opacity-50"
               >
                 SUBMIT
@@ -190,6 +188,21 @@ export default function StyledQuestionGenerator() {
             </div>
           </section>
         </div>
+
+        {/* Footer */}
+        <footer className="mt-12 text-center">
+          <p className="text-xs text-red-400">
+            Built by{' '}
+            <a 
+              href="https://github.com/eliferezhenderson" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline hover:text-red-500"
+            >
+              Elif Erez-Henderson
+            </a>
+          </p>
+        </footer>
 
         {/* Alert */}
         {showAlert && (

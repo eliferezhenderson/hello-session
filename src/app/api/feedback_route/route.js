@@ -5,57 +5,50 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
+// Helper function to format questions consistently
+const formatQuestion = (question) => {
+    return question
+        .replace(/^["']|["']$/g, '')  // Remove surrounding quotes
+        .replace(/\s+/g, ' ')         // Normalize whitespace
+        .trim()                       // Remove leading/trailing whitespace
+        .replace(/^\w/, c => c.toUpperCase())  // Capitalize first letter
+        .replace(/[.?!]+$/, '?');     // Ensure question ends with single question mark
+};
+
 export async function POST(request) {
     try {
         const { question, feedback } = await request.json();
 
-        if (feedback === 'too_complex') {
-            const completion = await openai.chat.completions.create({
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are a helpful assistant that generates simpler icebreaker questions. Generate a single question that is simpler than the given question while maintaining the same theme or topic. The response should be just the question, without quotes or additional text."
-                    },
-                    {
-                        role: "user",
-                        content: `The following question was considered too complex: "${question}". Please generate a simpler alternative.`
-                    }
-                ],
-                model: "gpt-3.5-turbo",
-            });
+        const systemPrompt = feedback === 'too_complex' 
+            ? "You are a helpful assistant that generates simpler icebreaker questions. Generate a single question that is simpler than the given question while maintaining the same theme or topic. The response should be just the question, without quotes or additional text. Use proper grammar and capitalization."
+            : "You are a helpful assistant that generates deeper icebreaker questions. Generate a single question that is more thought-provoking than the given question while maintaining the same theme or topic. The response should be just the question, without quotes or additional text. Use proper grammar and capitalization.";
 
-            const newQuestion = completion.choices[0].message.content.trim();
-            
-            return new NextResponse(
-                JSON.stringify({ newQuestion }), 
-                { status: 200 }
-            );
-        } else if (feedback === 'too_simple') {
-            const completion = await openai.chat.completions.create({
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are a helpful assistant that generates deeper icebreaker questions. Generate a single question that is more thought-provoking than the given question while maintaining the same theme or topic. The response should be just the question, without quotes or additional text."
-                    },
-                    {
-                        role: "user",
-                        content: `The following question was considered too simple: "${question}". Please generate a deeper alternative.`
-                    }
-                ],
-                model: "gpt-3.5-turbo",
-            });
+        const completion = await openai.chat.completions.create({
+            messages: [
+                {
+                    role: "system",
+                    content: systemPrompt
+                },
+                {
+                    role: "user",
+                    content: `The following question was considered ${feedback === 'too_complex' ? 'too complex' : 'too simple'}: "${question}". Please generate a ${feedback === 'too_complex' ? 'simpler' : 'deeper'} alternative.`
+                }
+            ],
+            model: "gpt-3.5-turbo",
+            temperature: 0.7,
+            max_tokens: 100,
+        });
 
-            const newQuestion = completion.choices[0].message.content.trim();
-            
-            return new NextResponse(
-                JSON.stringify({ newQuestion }), 
-                { status: 200 }
-            );
-        }
-
+        const newQuestion = formatQuestion(completion.choices[0].message.content);
+        
         return new NextResponse(
-            JSON.stringify({ error: 'Invalid feedback type' }), 
-            { status: 400 }
+            JSON.stringify({ newQuestion }), 
+            { 
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }
         );
 
     } catch (error) {
