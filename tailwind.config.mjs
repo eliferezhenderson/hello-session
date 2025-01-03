@@ -9,7 +9,7 @@ module.exports = {
     extend: {
       colors: {
         pink: {
-          50: '#fff0f3',
+          50: '#F8D5E4',
         },
       },
       fontFamily: {
