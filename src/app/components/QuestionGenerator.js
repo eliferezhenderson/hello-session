@@ -17,13 +17,16 @@ export default function QuestionGenerator() {
   //
   useEffect(() => {
     fetchQuestions();
-    setIsLoading(false);
-    handleClick('random');
     setCurrentTime(new Date().toLocaleTimeString());
     const interval = setInterval(() => {
       setCurrentTime(new Date().toLocaleTimeString());
     }, 1000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    setIsLoading(false);
+    handleClick('random');
   }, []);
 
   // If you want the first loaded question to be random (instead of "Question Loading..."),
