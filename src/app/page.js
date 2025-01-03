@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 
 export default function StyledQuestionGenerator() {
@@ -150,7 +152,7 @@ export default function StyledQuestionGenerator() {
                 className="border-2 border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
                          hover:text-white transition-colors disabled:opacity-50 flex-1"
               >
-                TOO COMPLEX, GIVE ME AN EASIER QUESTION
+                TOO COMPLEX, AN EASIER QUESTION PLEASE
               </button>
               <button 
                 onClick={() => handleFeedback('too_simple')}
@@ -158,18 +160,18 @@ export default function StyledQuestionGenerator() {
                 className="border-2 border-red-500 text-red-500 px-6 py-3 hover:bg-red-500 
                          hover:text-white transition-colors disabled:opacity-50 flex-1"
               >
-                TOO SIMPLE, GIVE ME A DEEPER QUESTION
+                TOO SIMPLE, A DEEPER QUESTION PLEASE
               </button>
             </div>
           </section>
 
           {/* Submit Question Section */}
           <section className="bg-white p-8 border border-red-200 shadow-lg">
-            <h3 className="text-xl mb-6 font-light text-red-500">SUGGEST A QUESTION</h3>
+            <h3 className="text-xl mb-6 font-light text-red-500">SUGGEST A NEW QUESTION</h3>
             <div className="flex gap-4">
               <input
                 type="text"
-                placeholder="TYPE YOUR QUESTION HERE..."
+                placeholder="TYPE YOUR QUESTION HERE AND WE'LL ADD IT TO THE BANK..."
                 value={newQuestion}
                 onChange={(e) => setNewQuestion(e.target.value)}
                 disabled={isLoading}
@@ -192,7 +194,7 @@ export default function StyledQuestionGenerator() {
         {/* Footer */}
         <footer className="mt-12 text-center">
           <p className="text-xs text-red-400">
-            Built by{' '}
+            Built with care by{' '}
             <a 
               href="https://github.com/eliferezhenderson" 
               target="_blank" 
