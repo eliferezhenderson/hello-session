@@ -25,9 +25,16 @@ export default function QuestionGenerator() {
   }, []);
 
   useEffect(() => {
-    setIsLoading(false);
-    handleClick('random');
-  }, []);
+    if (questionBank.length > 0 && currentQuestion === 'Question Loading...') {
+      getRandomQuestion();
+  }
+}, [questionBank]);
+
+const getRandomQuestion = () => {
+  if (questionBank.length === 0) return;
+  const randomIndex = Math.floor(Math.random() * questionBank.length);
+  setCurrentQuestion(questionBank[randomIndex]);
+};
 
   // If you want the first loaded question to be random (instead of "Question Loading..."),
   // you could auto-click "GO RANDOM" inside useEffect. For now, we’ll just show the label until user clicks a button.
