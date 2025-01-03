@@ -121,7 +121,7 @@ export default function QuestionGenerator() {
   };
 
   return (
-    <main className="min-h-screen bg-pink-50 p-8" style={{ fontFamily: 'Adobe Caslon Pro, serif' }}>
+    <main className="min-h-screen bg-pink-50 p-8 font-caslon">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <header className="mb-12 border-b border-red-400 pb-4">

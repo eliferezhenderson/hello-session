@@ -1,5 +1,5 @@
 // import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import './globals.css'  // This should contain Tailwind imports
 import './fonts.css'  // Add this line
 
 export const metadata = {
