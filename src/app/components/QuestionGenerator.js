@@ -102,7 +102,7 @@ export default function QuestionGenerator() {
         setRecentQuestions((prev) => {
           const updated = [data.newQuestion, ...prev];
           // Keep last 3 to reduce repetition
-          if (updated.length > 5) {
+          if (updated.length > 10) {
             updated.pop();
           }
           return updated;
