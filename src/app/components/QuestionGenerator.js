@@ -12,6 +12,9 @@ export default function QuestionGenerator() {
   const [questionBank, setQuestionBank] = useState([]);
   const [currentTime, setCurrentTime] = useState('');
 
+  // NEW: Keep track of the last few questions to reduce repetition
+  const [recentQuestions, setRecentQuestions] = useState([]); // <-- new
+
   //
   // 1. LOAD QUESTIONS FROM /api/question_route
   //
@@ -26,15 +29,16 @@ export default function QuestionGenerator() {
 
   useEffect(() => {
     if (questionBank.length > 0 && currentQuestion === 'Question Loading...') {
-      getRandomQuestion();
-  }
-}, [questionBank]);
+      getRandomQuestionLocal();
+    }
+  }, [questionBank]);
 
-const getRandomQuestion = () => {
-  if (questionBank.length === 0) return;
-  const randomIndex = Math.floor(Math.random() * questionBank.length);
-  setCurrentQuestion(questionBank[randomIndex]);
-};
+  // Just for your local "Go Random" button if you want to skip GPT:
+  const getRandomQuestionLocal = () => {
+    if (questionBank.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * questionBank.length);
+    setCurrentQuestion(questionBank[randomIndex]);
+  };
 
   // If you want the first loaded question to be random (instead of "Question Loading..."),
   // you could auto-click "GO RANDOM" inside useEffect. For now, we’ll just show the label until user clicks a button.
@@ -66,24 +70,22 @@ const getRandomQuestion = () => {
   //
   // 3. BUTTON CLICK HANDLER (GO RANDOM / GO EASIER / GO DEEPER)
   //
-
-  
   const handleClick = async (type) => {
     if (isLoading) return;
     setIsLoading(true);
 
     try {
       //
-      // Post to our updated /api/feedback_route, passing:
-      //   - the entire questionBank
-      //   - the current question
+      // Post to /api/feedback_route, passing:
       //   - which button was clicked (type)
+      //   - the recently used questions so GPT can exclude them
       //
       const response = await fetch('/api/feedback_route', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type // "random", "easier", or "deeper"
+          type, 
+          excludedQuestions: recentQuestions, // <-- new
         }),
       });
 
@@ -95,6 +97,16 @@ const getRandomQuestion = () => {
       if (data.newQuestion) {
         setCurrentQuestion(data.newQuestion);
         showNotification(`Here is a "${type.toUpperCase()}" question!`);
+
+        // NEW: Update recentQuestions
+        setRecentQuestions((prev) => {
+          const updated = [data.newQuestion, ...prev];
+          // Keep last 3 to reduce repetition
+          if (updated.length > 5) {
+            updated.pop();
+          }
+          return updated;
+        });
       }
     } catch (error) {
       console.error('Error fetching new question:', error);
