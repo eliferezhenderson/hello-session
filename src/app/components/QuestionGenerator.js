@@ -143,6 +143,7 @@ export default function QuestionGenerator() {
           </div>
           <p className="text-base max-w-4xl leading-snug text-vwRed">
             This tool offers icebreaker questions for classrooms, teams, or groups of friends. You can press the buttons down below to get a new question.   {' '}
+            <br />
             <span className="underline font-medium">Go Random</span> to get a surprise, or try{' '}
             <span className="underline font-medium">Go Easier</span> for something light, or{' '}
             <span className="underline font-medium">Go Deeper</span> for a thoughtful conversation.
