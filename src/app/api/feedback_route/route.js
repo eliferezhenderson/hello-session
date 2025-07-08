@@ -1,105 +1,52 @@
 import { NextResponse } from 'next/server';
-import OpenAI from 'openai';
-
-// 1) Import your single source of truth for the question bank:
-import questions from '../../questions.js'; 
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// 2) Helper function to format questions consistently
-function formatQuestion(question) {
-  return question
-    .replace(/^["']|["']$/g, '') // Remove surrounding quotes
-    .replace(/\s+/g, ' ')       // Normalize whitespace
-    .trim()                     // Remove leading/trailing whitespace
-    .replace(/^\w/, (c) => c.toUpperCase()) // Capitalize first letter
-    .replace(/[.?!]+$/, '?');   // Ensure question ends with a single '?'
-}
-
-// 3) Build a System Prompt that includes your entire question bank
-function buildSystemPrompt(type, excludedQuestions = []) {
-  // Convert your array of questions to a bullet-list or joined string
-  const bankList = questions
-    .map((q, i) => `(${i + 1}) ${q}`)
-    .join('\n');
-
-  // We'll define the base instructions for GPT
-  let baseInstructions = '';
-  if (type === 'random') {
-    baseInstructions = `The user wants a random icebreaker question. Decide whether to pick one from the bank or generate a brand-new question in a similar style.`;
-  } else if (type === 'easier') {
-    baseInstructions = `The user wants a simpler, easier icebreaker question. Decide whether to pick one from the bank or generate a brand-new simpler question in a similar style.`;
-  } else {
-    // 'deeper'
-    baseInstructions = `The user wants a more thought-provoking, deeper question. Decide whether to pick one from the bank or generate a brand-new deeper question in a similar style.`;
-  }
-
-  // If we have questions to exclude, let GPT know:
-  let exclusionText = '';
-  if (excludedQuestions.length > 0) {
-    // Exclusion text is just a line telling GPT to avoid these questions
-    exclusionText = `\n\nDo NOT return any of the following questions (recently used):\n- ${excludedQuestions.join('\n- ')}`;
-  }
-
-  // Combine everything into the final system prompt
-  const systemPrompt = `
-You have the following question bank:
-${bankList}
-
-${baseInstructions}
-Return ONLY the question in plain text, with no quotes or extra commentary.
-Use proper grammar and punctuation.
-
-${exclusionText}
-  `.trim();
-
-  return systemPrompt;
-}
 
 export async function POST(request) {
   try {
-    // 4) We read { type, excludedQuestions } from the request now.
-    const { type, excludedQuestions } = await request.json();
+    const { type } = await request.json();
 
-    // 5) Build system prompt from local question bank + excluded questions
-    const systemPrompt = buildSystemPrompt(type, excludedQuestions || []);
+    const prompt =
+      type === 'deeper'
+        ? 'Generate a deep and thoughtful icebreaker question for a group. just give only the question.'
+        : type === 'easier'
+        ? 'Generate a light and fun icebreaker question. just give only the question.'
+        : 'Generate a creative, interesting question for people to connect. just give only the question.';
 
-    // 6) Make a single GPT call. GPT will pick or generate a question:
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      temperature: 0.8,
-      max_tokens: 100,
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        {
-          role: 'user',
-          content: "Please follow the system prompt carefully and return only the question.",
-        },
-      ],
+    const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'mistralai/mistral-7b-instruct',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant that generates fun, insightful icebreaker questions.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+      }),
     });
 
-    // 7) Format GPT's response
-    const rawGPTResponse = completion.choices[0]?.message?.content || '';
-    const newQuestion = formatQuestion(rawGPTResponse);
+    if (!response.ok) {
+      const err = await response.text();
+      console.error('OpenRouter error:', err);
+      return NextResponse.json({ error: 'Failed to fetch question' }, { status: 500 });
+    }
 
-    // 8) Return the new question to the client
-    return NextResponse.json(
-      { newQuestion },
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
-  } catch (error) {
-    console.error('Feedback Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process feedback' },
-      { status: 500 }
-    );
+    const data = await response.json();
+    const generated = data.choices?.[0]?.message?.content?.trim();
+
+    return NextResponse.json({ newQuestion: generated || 'No question generated.' });
+  } catch (err) {
+    console.error('Unexpected error:', err);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
+
