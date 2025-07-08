@@ -28,7 +28,8 @@ const questions = [
       "What was the last movie you saw?",
       "What is your favorite thing to do in Lausanne with someone who comes to visit you (friend or family)?",
       "If you could live inside of a tv show for a day, which tv show would you choose?",
-      "If you could pick an era from all of history to live in, which one would you pick?"
+      "If you could pick an era from all of history to live in, which one would you pick?",
+      "In the event of a zombie apolocalypse, name three people you’d want on your team"
       // ... and so on ...
   ];
   
