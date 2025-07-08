@@ -8,7 +8,6 @@ const redis = createClient({
 redis.on('error', (err) => console.error('Redis Client Error', err));
 
 let isConnected = false;
-
 async function connectRedis() {
   if (!isConnected) {
     await redis.connect();
@@ -33,15 +32,18 @@ export async function POST(request) {
 
     await connectRedis();
 
-    // Save submitted question to Redis list
+    // Push to Redis list
     await redis.lPush('submitted_questions', question.trim());
 
     return new Response(JSON.stringify({ message: 'Saved to Redis Cloud!' }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
-  } catch (err) {
-    console.error('POST /question_route Redis error:', err);
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500 });
+  } catch (error) {
+    console.error('Redis POST error:', error);
+    return new Response(JSON.stringify({ error: 'Redis write failed' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
