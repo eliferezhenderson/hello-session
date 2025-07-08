@@ -141,7 +141,7 @@ export default function QuestionGenerator() {
             />
             <h1 className="text-6xl font-semibold mt-0">HELLO, FRIEND</h1>
           </div>
-          <p className="text-base max-w-2xl leading-snug text-vwRed">
+          <p className="text-base max-w-4xl leading-snug text-vwRed">
             This tool offers icebreaker questions for classrooms, teams, or groups of friends. You can press the buttons down below to get a new question.{' '}
             <span className="underline font-medium">Go Random</span> to get a surprise, or try{' '}
             <span className="underline font-medium">Go Easier</span> for something light, or{' '}
